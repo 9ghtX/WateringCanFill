@@ -1,71 +1,51 @@
-﻿using System;
-using HarmonyLib;
+﻿using HarmonyLib;
 using Vintagestory.API.Common;
 using Vintagestory.GameContent;
 
 namespace WateringCanFill;
 
 [HarmonyPatch(typeof(ItemSlot), "TryPutInto")]
-public static class WateringCanUISlotPatch
+public static class WateringCanUiPatch
 {
-    const float LitresForFullCan = 5f;
-
     static bool Prefix(
         ItemSlot __instance,
         ItemSlot sinkSlot,
         ref int movedQuantity)
     {
-        if (__instance?.Itemstack == null)
+        var canStack = __instance?.Itemstack;
+        if (canStack == null)
             return true;
 
-        var canStack = __instance.Itemstack;
-
-        if (canStack.Block is not BlockWateringCan wateringCan)
+        if (canStack.Block is not BlockWateringCan can)
             return true;
 
-        var sourceStack = sinkSlot?.Itemstack;
+        var api = __instance.Inventory?.Api;
+        var world = api?.World;
 
-        if (sourceStack?.Block?.LiquidCode != "water")
+        if (world == null)
             return true;
 
-        var props = sourceStack.Block.Attributes?["waterTightContainerProps"]
-            ?.AsObject<WaterTightContainableProps>();
+        DebugChat.Msg(world, "UI patch entered");
 
-        if (props == null)
+        if (sinkSlot?.Itemstack == null)
+        {
+            DebugChat.Msg(world, "UI sink slot empty");
             return true;
+        }
 
-        float litresPerItem = 1f / props.ItemsPerLitre;
-        float availableLitres = sourceStack.StackSize * litresPerItem;
-
-        float secondsPerLitre = wateringCan.CapacitySeconds / LitresForFullCan;
-
-        float remainingSeconds = wateringCan.GetRemainingWateringSeconds(canStack);
-        float missingSeconds = wateringCan.CapacitySeconds - remainingSeconds;
-
-        if (missingSeconds <= 0)
-            return false;
-
-        float neededLitres = missingSeconds / secondsPerLitre;
-        float litresToTransfer = Math.Min(neededLitres, availableLitres);
-
-        float secondsToAdd = litresToTransfer * secondsPerLitre;
-
-        wateringCan.SetRemainingWateringSeconds(
-            canStack,
-            remainingSeconds + secondsToAdd
-        );
-
-        int itemsToTake = (int)Math.Ceiling(litresToTransfer / litresPerItem);
-
-        sourceStack.StackSize -= itemsToTake;
-
-        if (sourceStack.StackSize <= 0)
-            sinkSlot.Itemstack = null;
-
-        sinkSlot.MarkDirty();
-        __instance.MarkDirty();
+        if (!WateringLogic.TryTransferWater(
+                can,
+                __instance,
+                sinkSlot,
+                world))
+        {
+            DebugChat.Msg(world, "Transfer from UI slot did not happen");
+            return true;
+        }
 
         movedQuantity = 0;
+
+        DebugChat.Msg(world, "Handled by mod UI patch");
 
         return false;
     }

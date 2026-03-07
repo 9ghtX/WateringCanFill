@@ -1,14 +1,12 @@
 {
-    "$schema": "https://moddbcdn.vintagestory.at/schema/modinfo.latest.json",
-    "type": "Code",
-    "modid": "wateringcanfill",
-    "name": "Watering Can Fill",
-    "authors": [
-        "9ghtX"
-    ],
-    "description": "Makes possible to fill a watering can from not only block of water",
-    "version": "1.0.0",
-    "dependencies": {
-        "game": "1.21"
-    }
+  "$schema": "https://moddbcdn.vintagestory.at/schema/modinfo.latest.json",
+  "type": "code",
+  "modid": "wateringcanfill",
+  "name": "Watering Can Fill",
+  "authors": ["9ghtX"],
+  "description": "Makes possible to fill a watering can from not only block of water",
+  "version": "1.0.0",
+  "dependencies": {
+    "game": "1.21"
+  }
 }

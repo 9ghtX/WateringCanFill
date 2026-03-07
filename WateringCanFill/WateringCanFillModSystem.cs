@@ -1,55 +1,42 @@
 ﻿using HarmonyLib;
-using Vintagestory.API.Common;
 using Vintagestory.API.Client;
+using Vintagestory.API.Common;
 
 namespace WateringCanFill;
 
 public class WateringCanFillModSystem : ModSystem
 {
-    private Harmony harmony;
+    private Harmony? harmony;
 
     public override void Start(ICoreAPI api)
     {
         harmony = new Harmony("wateringcanfill");
         harmony.PatchAll();
 
-        if (api is ICoreClientAPI capi)
-        {
-            capi.Event.RegisterGameTickListener(_ =>
+        api.Logger.Notification("WateringCanFill: patches applied");
+    }
+
+    public override void StartClientSide(ICoreClientAPI api)
+    {
+        api.ChatCommands
+            .Create("wateringdebug")
+            .WithDescription("Toggle WateringCanFill debug chat output")
+            .HandleWith(_ =>
             {
-                var player = capi.World.Player;
-                if (player == null)
-                {
-                    capi.ShowChatMessage(
-                        $"Didn't get player from API"
-                    );
-                    return;
-                }
+                DebugState.Enabled = !DebugState.Enabled;
 
-                capi.ShowChatMessage(
-                    $"Got player from API!"
+                api.ShowChatMessage(
+                    "[WateringCanFill] Debug " +
+                    (DebugState.Enabled ? "enabled" : "disabled")
                 );
 
-                var slot = player.InventoryManager.ActiveHotbarSlot;
-                var stack = slot?.Itemstack;
+                return TextCommandResult.Success();
+            });
+    }
 
-                if (stack == null)
-                {
-                    capi.ShowChatMessage(
-                        $"Didn't  get stack from Hotbar Slot"
-                    );
-                    return;
-                }
-                
-                capi.ShowChatMessage(
-                    $"Got stack from Hotbar Slot!"
-                );
-
-                capi.ShowChatMessage(
-                    $"Code: {stack.Collectible.Code} | Class: {stack.Collectible.GetType().FullName}"
-                );
-
-            }, 2000);
-        }
+    public override void Dispose()
+    {
+        harmony?.UnpatchAll("wateringcanfill");
+        harmony = null;
     }
 }
