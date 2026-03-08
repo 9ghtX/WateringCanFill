@@ -1,28 +1,35 @@
-﻿using HarmonyLib;
+﻿using System;
+using System.Reflection;
+using HarmonyLib;
 using Vintagestory.API.Common;
 using Vintagestory.GameContent;
 
 namespace WateringCanFill;
 
-[HarmonyPatch(typeof(ItemSlot), "TryPutInto")]
+[HarmonyPatch]
 public static class WateringCanUiPatch
 {
+    static MethodBase TargetMethod()
+    {
+        return AccessTools.Method(
+            typeof(ItemSlot),
+            "TryPutInto",
+            new[] { typeof(IWorldAccessor), typeof(ItemSlot), typeof(int) }
+        );
+    }
+
     static bool Prefix(
         ItemSlot __instance,
+        IWorldAccessor world,
         ItemSlot sinkSlot,
-        ref int movedQuantity)
+        int quantity,
+        ref int __result)
     {
         var canStack = __instance?.Itemstack;
         if (canStack == null)
             return true;
 
-        if (canStack.Block is not BlockWateringCan can)
-            return true;
-
-        var api = __instance.Inventory?.Api;
-        var world = api?.World;
-
-        if (world == null)
+        if (canStack.Collectible is not BlockWateringCan can)
             return true;
 
         DebugChat.Msg(world, "UI patch entered");
@@ -43,7 +50,7 @@ public static class WateringCanUiPatch
             return true;
         }
 
-        movedQuantity = 0;
+        __result = 0;
 
         DebugChat.Msg(world, "Handled by mod UI patch");
 

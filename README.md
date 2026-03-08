@@ -27,9 +27,9 @@ This mod allows refilling from existing liquid containers such as barrels and bu
 
 The mod is designed to work automatically with:
 
--   vanilla **buckets**
--   vanilla **barrels**
--   modded **liquid containers**
+-   buckets
+-   barrels
+-   modded liquid containers
 
 Any block entity derived from `BlockEntityLiquidContainer` should work without additional patches.
 
