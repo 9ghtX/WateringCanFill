@@ -1,23 +1,17 @@
-﻿using System;
-using System.Reflection;
-using HarmonyLib;
+﻿using HarmonyLib;
 using Vintagestory.API.Common;
 using Vintagestory.GameContent;
 
 namespace WateringCanFill;
 
-[HarmonyPatch]
 public static class WateringCanUiPatch
 {
-    static MethodBase TargetMethod()
-    {
-        return AccessTools.Method(
-            typeof(ItemSlot),
-            "TryPutInto",
-            new[] { typeof(IWorldAccessor), typeof(ItemSlot), typeof(int) }
-        );
-    }
-
+    [HarmonyPrefix]
+    [HarmonyPatch(
+        typeof(ItemSlot),
+        nameof(ItemSlot.TryPutInto),
+        new[] { typeof(IWorldAccessor), typeof(ItemSlot), typeof(int) }
+    )]
     static bool Prefix(
         ItemSlot __instance,
         IWorldAccessor world,
