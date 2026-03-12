@@ -8,7 +8,6 @@ namespace WateringCanFill;
 public static class WateringLogic
 {
     public const float LitresForFullCan = 5f;
-    public const float LitresPerTransfer = 1f;
 
     public static bool TryTransferWater(
         BlockWateringCan can,
@@ -21,6 +20,7 @@ public static class WateringLogic
         DebugChat.Msg(world, "Transfer started");
 
         var sourceStack = sourceSlot?.Itemstack;
+
         if (sourceStack == null)
         {
             DebugChat.Msg(world, "Source slot empty");
@@ -39,6 +39,7 @@ public static class WateringLogic
         }
 
         var code = sourceStack.Collectible?.Code?.Path;
+
         if (code != "waterportion")
         {
             DebugChat.Msg(world, $"Liquid is not fresh water: {code ?? "null"}");
@@ -67,10 +68,9 @@ public static class WateringLogic
 
         float remainingSeconds = can.GetRemainingWateringSeconds(canSlot.Itemstack);
         float missingSeconds = can.CapacitySeconds - remainingSeconds;
-        float secondsPerLitre = can.CapacitySeconds / LitresForFullCan;
 
         DebugChat.Msg(world,
-            $"remainingSeconds={remainingSeconds}, missingSeconds={missingSeconds}, secondsPerLitre={secondsPerLitre}");
+            $"remainingSeconds={remainingSeconds}, missingSeconds={missingSeconds}");
 
         if (missingSeconds <= 0f)
         {
@@ -78,22 +78,39 @@ public static class WateringLogic
             return false;
         }
 
-        float litresNeeded = missingSeconds / secondsPerLitre;
-        float litresToTransfer = Math.Min(
-            LitresPerTransfer,
-            Math.Min(availableLitres, litresNeeded)
-        );
+        float secondsToAdd;
 
-        DebugChat.Msg(world,
-            $"litresNeeded={litresNeeded}, litresToTransfer={litresToTransfer}");
-
-        if (litresToTransfer <= 0f)
+        // --- Используем проценты если они заданы ---
+        if (ConfigManager.Config.FillPercentPerTransfer > 0)
         {
-            DebugChat.Msg(world, "Nothing to transfer");
-            return false;
+            float percent = ConfigManager.Config.FillPercentPerTransfer / 100f;
+
+            secondsToAdd = can.CapacitySeconds * percent;
+
+            DebugChat.Msg(world,
+                $"Using percent mode: {ConfigManager.Config.FillPercentPerTransfer}% → secondsToAdd={secondsToAdd}");
+        }
+        else
+        {
+            float secondsPerLitre = can.CapacitySeconds / LitresForFullCan;
+
+            float litresToTransfer = Math.Min(
+                ConfigManager.Config.LitresPerTransfer,
+                Math.Min(availableLitres, missingSeconds / secondsPerLitre)
+            );
+
+            DebugChat.Msg(world,
+                $"Using litre mode: litresToTransfer={litresToTransfer}");
+
+            if (litresToTransfer <= 0f)
+            {
+                DebugChat.Msg(world, "Nothing to transfer");
+                return false;
+            }
+
+            secondsToAdd = litresToTransfer * secondsPerLitre;
         }
 
-        float secondsToAdd = litresToTransfer * secondsPerLitre;
         float newSeconds = GameMath.Clamp(
             remainingSeconds + secondsToAdd,
             0,
@@ -102,9 +119,17 @@ public static class WateringLogic
 
         can.SetRemainingWateringSeconds(canSlot.Itemstack, newSeconds);
 
-        DebugChat.Msg(world, $"secondsToAdd={secondsToAdd}, newSeconds={newSeconds}");
+        DebugChat.Msg(world,
+            $"secondsToAdd={secondsToAdd}, newSeconds={newSeconds}");
 
-        int itemsToTake = (int)Math.Ceiling(litresToTransfer * props.ItemsPerLitre);
+        // --- списываем воду из контейнера ---
+
+        float secondsPerLitreReal = can.CapacitySeconds / LitresForFullCan;
+
+        float litresUsed = secondsToAdd / secondsPerLitreReal;
+
+        int itemsToTake = (int)Math.Ceiling(litresUsed * props.ItemsPerLitre);
+
         itemsToTake = Math.Min(itemsToTake, sourceStack.StackSize);
 
         DebugChat.Msg(world, $"itemsToTake={itemsToTake}");
@@ -129,10 +154,12 @@ public static class WateringLogic
                 soundPos.Z,
                 byPlayer
             );
+
             DebugChat.Msg(world, "Played water sound");
         }
 
         DebugChat.Msg(world, "Transfer complete");
+
         return true;
     }
 }

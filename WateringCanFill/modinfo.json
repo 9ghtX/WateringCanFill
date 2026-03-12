@@ -7,7 +7,7 @@
   "authors": ["9ghtX"],
   "contributors": [],
   "description": "Makes possible to fill a watering can from not only block of water",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "dependencies": {
     "game": "1.21.6"
   },

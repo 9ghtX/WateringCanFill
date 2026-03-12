@@ -10,6 +10,8 @@ public class WateringCanFillModSystem : ModSystem
 
     public override void Start(ICoreAPI api)
     {
+        ConfigManager.Load(api);
+        
         harmony = new Harmony("wateringcanfill");
         harmony.PatchAll();
 
